@@ -1,0 +1,2 @@
+class BetterConfig < Config
+end

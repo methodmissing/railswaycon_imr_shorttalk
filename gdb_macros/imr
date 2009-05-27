@@ -1,0 +1,123 @@
+# Custom talk specific macros
+# Requires GDB macros from http://eigenclass.org/hiki/ruby+live+process+introspection 
+#
+
+# Please adjust this path
+#
+define imr
+  run /Users/lourens/railswaycon_imr/src/$arg0
+end
+
+# Dumps RBasic
+#
+define imr_value
+  break rb_any_to_s
+  imr config.rb
+  rp obj
+  clear rb_any_to_s
+  rb_backtrace
+  where
+end
+
+# Busting the method cache
+#
+define imr_cache
+  break rb_clear_cache
+  imr cache.rb
+  clear rb_clear_cache
+  rb_backtrace
+  where
+end
+
+# RBasic flags
+#
+define imr_flags
+  break rb_singleton_class
+  imr config.rb
+  rp obj
+  set $rbasic = (struct RBasic*)obj
+  p ($rbasic).flags
+  clear rb_singleton_class
+  rb_backtrace;
+  where
+end
+
+# Search for a source file
+#
+define imr_search_required
+  break search_required
+  imr config_gc_mark.rb 
+  rp fname
+  rp *(VALUE*) fname
+  rp *(VALUE*) path  
+  rb_backtrace
+  where 
+  clear search_required
+end
+
+# Mark a source file
+#
+define imr_mark_file
+  break mark_source_filename
+  imr config_gc_sweep.rb
+  clear mark_source_filename
+  where
+end
+
+# Sweep a source file
+#
+define imr_sweep_file
+  break sweep_source_filename
+  imr config_gc_mark.rb
+  clear mark_source_filename
+  rb_backtrace 
+  where
+end
+
+# Spawn new object
+#
+define imr_newobj
+  break rb_newobj
+  imr config.rb
+  rp obj
+  echo freelist\n
+  p *(struct RData*)freelist
+  clear rb_newobj
+  rb_backtrace
+  where
+end
+
+# Symbol table insert
+#
+# TODO: Refactor
+def imr_st_insert
+  break st_insert
+  imr config.rb
+  p *(struct st_table*)table
+  p key
+  p value
+  step
+  step
+  step
+  step
+  step
+  next
+  next
+  p *(struct st_table*)table
+  clear st_insert
+  rb_backtrace
+  where
+end
+
+# Symbol table lookup
+#
+def imr_st_lookup
+  break st_lookup
+  imr config.rb
+  p *(struct st_table*)table
+  p key
+  p *(st_data_t*)value
+  clear st_lookup
+  rb_backtrace
+  where
+end
